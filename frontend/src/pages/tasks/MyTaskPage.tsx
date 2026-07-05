@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { todoApi } from "../../api/todo.api";
 import { categoryApi } from "../../api/category.api";
-import type { Task, CreateTaskPayload, UpdateTaskPayload } from "../../types";
+import type { Task, CreateTaskPayload, UpdateTaskPayload, PaginationMeta } from "../../types";
 import TaskCard from "../../components/todo/TaskCard";
 import TaskFilterBar from "../../components/todo/TaskFilterBar";
 import TaskFormModal from "../../components/todo/TaskFormModal";
@@ -12,8 +12,10 @@ import EmptyState from "../../components/common/EmptyState";
 import Button from "../../components/common/Button";
 import { useDisclosure } from "../../hooks/useUtils";
 import { useDebounce } from "../../hooks/useUtils";
-import { Plus } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import TaskDetailPanel from "../../components/todo/TaskDetailPanel";
+
+const PAGE_LIMIT = 6;
 
 const MyTaskPage: React.FC = () => {
     const [tasks, setTasks] = useState<Task[]>([]);
@@ -32,6 +34,10 @@ const MyTaskPage: React.FC = () => {
     const [statusFilter, setStatusFilter] = useState("");
     const [priorityFilter, setPriorityFilter] = useState("");
     const debouncedSearch = useDebounce(search, 400);
+
+    // Pagination
+    const [page, setPage] = useState(1);
+    const [meta, setMeta] = useState<PaginationMeta | null>(null);
 
     const addModal = useDisclosure();
     const editModal = useDisclosure();
@@ -55,9 +61,11 @@ const MyTaskPage: React.FC = () => {
                 search: debouncedSearch || undefined,
                 status: statusFilter || undefined,
                 priority: priorityFilter || undefined,
+                page,
+                limit: PAGE_LIMIT,
             });
             setTasks(res.tasks);
-            // Update selected task if it's in the new list (use functional update to avoid dependency)
+            setMeta(res.meta);
             setSelectedTask((prev) => {
                 if (!prev) return prev;
                 return res.tasks.find((t) => t._id === prev._id) || null;
@@ -69,6 +77,11 @@ const MyTaskPage: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
+    }, [debouncedSearch, statusFilter, priorityFilter, page]);
+
+    // Reset to page 1 when filters/search change
+    useEffect(() => {
+        setPage(1);
     }, [debouncedSearch, statusFilter, priorityFilter]);
 
     useEffect(() => {
@@ -79,10 +92,9 @@ const MyTaskPage: React.FC = () => {
     const handleCreateTask = async (payload: CreateTaskPayload) => {
         setIsSaving(true);
         try {
-            const newTask = await todoApi.createTask(payload);
-            setTasks((prev) => [newTask, ...prev]);
-            setSelectedTask(newTask);
+            await todoApi.createTask(payload);
             addModal.close();
+            setPage(1);
         } catch (err) {
             console.error(err);
         } finally {
@@ -113,15 +125,36 @@ const MyTaskPage: React.FC = () => {
         setIsDeleting(true);
         try {
             await todoApi.deleteTask(deletingTask._id);
-            setTasks((prev) => prev.filter((t) => t._id !== deletingTask._id));
             if (selectedTask?._id === deletingTask._id) setSelectedTask(null);
             deleteDialog.close();
             setDeletingTask(null);
+            // Go back a page if last item on current page was deleted
+            if (tasks.length === 1 && page > 1) {
+                setPage((p) => p - 1);
+            } else {
+                fetchTasks();
+            }
         } catch (err) {
             console.error(err);
         } finally {
             setIsDeleting(false);
         }
+    };
+
+    const totalPages = meta?.totalPages ?? 1;
+
+    const renderPageButtons = (): (number | "...")[] => {
+        if (totalPages <= 7) {
+            return Array.from({ length: totalPages }, (_, i) => i + 1);
+        }
+        const pages: (number | "...")[] = [1];
+        if (page > 3) pages.push("...");
+        for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) {
+            pages.push(i);
+        }
+        if (page < totalPages - 2) pages.push("...");
+        pages.push(totalPages);
+        return pages;
     };
 
     return (
@@ -178,28 +211,87 @@ const MyTaskPage: React.FC = () => {
                             onAction={addModal.open}
                         />
                     ) : (
-                        <div className="space-y-3">
-                            {tasks.map((task) => (
-                                <TaskCard
-                                    key={task._id}
-                                    task={task}
-                                    onClick={() => setSelectedTask(task)}
-                                    onEdit={() => {
-                                        setEditingTask(task);
-                                        editModal.open();
-                                    }}
-                                    onDelete={() => {
-                                        setDeletingTask(task);
-                                        deleteDialog.open();
-                                    }}
-                                    className={
-                                        selectedTask?._id === task._id
-                                            ? "ring-2 ring-[var(--color-primary)]"
-                                            : ""
-                                    }
-                                />
-                            ))}
-                        </div>
+                        <>
+                            <div className="space-y-3">
+                                {tasks.map((task) => (
+                                    <TaskCard
+                                        key={task._id}
+                                        task={task}
+                                        onClick={() => setSelectedTask(task)}
+                                        onEdit={() => {
+                                            setEditingTask(task);
+                                            editModal.open();
+                                        }}
+                                        onDelete={() => {
+                                            setDeletingTask(task);
+                                            deleteDialog.open();
+                                        }}
+                                        className={
+                                            selectedTask?._id === task._id
+                                                ? "ring-2 ring-[var(--color-primary)]"
+                                                : ""
+                                        }
+                                    />
+                                ))}
+                            </div>
+
+                            {/* Pagination */}
+                            {totalPages > 1 && (
+                                <div className="flex items-center justify-between mt-5 pt-4 border-t border-gray-100">
+                                    <p className="text-xs text-gray-400">
+                                        Page {page} / {totalPages}
+                                        {meta && (
+                                            <span className="ml-1">
+                                                · {meta.total} task{meta.total !== 1 ? "s" : ""}
+                                            </span>
+                                        )}
+                                    </p>
+
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                            disabled={page === 1}
+                                            className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                            aria-label="Previous page"
+                                        >
+                                            <ChevronLeft size={14} />
+                                        </button>
+
+                                        {renderPageButtons().map((p, idx) =>
+                                            p === "..." ? (
+                                                <span
+                                                    key={`ellipsis-${idx}`}
+                                                    className="w-8 h-8 flex items-center justify-center text-xs text-gray-400 select-none"
+                                                >
+                                                    …
+                                                </span>
+                                            ) : (
+                                                <button
+                                                    key={p}
+                                                    onClick={() => setPage(p as number)}
+                                                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-medium transition-colors ${
+                                                        page === p
+                                                            ? "bg-[var(--color-primary)] text-white shadow-sm"
+                                                            : "border border-gray-200 text-gray-600 hover:bg-gray-50"
+                                                    }`}
+                                                >
+                                                    {p}
+                                                </button>
+                                            ),
+                                        )}
+
+                                        <button
+                                            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                                            disabled={page === totalPages}
+                                            className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                            aria-label="Next page"
+                                        >
+                                            <ChevronRight size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
 

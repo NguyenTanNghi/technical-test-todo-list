@@ -111,21 +111,43 @@ function validateTaskBody(body, { partial = false } = {}) {
         if (!priority) errors.push("Priority is required.");
     }
 
-    if (
-        typeof body.status !== "undefined" &&
-        body.status !== null &&
-        typeof body.status === "string" &&
-        !body.status.trim()
-    ) {
-        errors.push("Status cannot be empty.");
+    if (!partial || typeof body.status !== "undefined") {
+        if (!status) errors.push("Status is required.");
     }
 
-    if (
+    if (!partial || typeof body.date !== "undefined") {
+        if (!date) {
+            errors.push("Date is required.");
+        } else if (Number.isNaN(Date.parse(date))) {
+            errors.push("Date is invalid.");
+        } else {
+            const selected = new Date(date);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const compareDate = new Date(selected.getFullYear(), selected.getMonth(), selected.getDate());
+            if (compareDate < today) {
+                errors.push("Date cannot be in the past.");
+            }
+        }
+    } else if (
         typeof body.date !== "undefined" &&
-        date &&
-        Number.isNaN(Date.parse(date))
+        date
     ) {
-        errors.push("Date is invalid.");
+        if (Number.isNaN(Date.parse(date))) {
+            errors.push("Date is invalid.");
+        } else {
+            const selected = new Date(date);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const compareDate = new Date(selected.getFullYear(), selected.getMonth(), selected.getDate());
+            if (compareDate < today) {
+                errors.push("Date cannot be in the past.");
+            }
+        }
+    }
+
+    if (!partial || typeof body.description !== "undefined") {
+        if (!trimValue(body.description)) errors.push("Description is required.");
     }
 
     if (

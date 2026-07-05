@@ -72,6 +72,23 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({
     const validate = (): boolean => {
         const newErrors: Record<string, string> = {};
         if (!formData.title.trim()) newErrors.title = "Title is required";
+        if (!formData.date.trim()) {
+            newErrors.date = "Date is required";
+        } else {
+            const parts = formData.date.split("-").map(Number);
+            if (parts.length === 3) {
+                const [year, month, day] = parts;
+                const selected = new Date(year, month - 1, day);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                if (selected < today) {
+                    newErrors.date = "Date cannot be in the past";
+                }
+            }
+        }
+        if (!formData.priority) newErrors.priority = "Priority is required";
+        if (!formData.status) newErrors.status = "Status is required";
+        if (!formData.description.trim()) newErrors.description = "Description is required";
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -176,6 +193,11 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({
                         }
                         placeholder="Select due date"
                     />
+                    {errors.date && (
+                        <p className="text-xs text-red-500 mt-1">
+                            {errors.date}
+                        </p>
+                    )}
                 </div>
 
                 {/* Priority */}
@@ -214,6 +236,11 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({
                             </label>
                         ))}
                     </div>
+                    {errors.priority && (
+                        <p className="text-xs text-red-500 mt-1">
+                            {errors.priority}
+                        </p>
+                    )}
                 </div>
 
                 {/* Status */}
@@ -252,6 +279,11 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({
                             </label>
                         ))}
                     </div>
+                    {errors.status && (
+                        <p className="text-xs text-red-500 mt-1">
+                            {errors.status}
+                        </p>
+                    )}
                 </div>
 
                 {/* Description & Image upload */}
@@ -272,6 +304,11 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({
                             rows={5}
                             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary-soft)]"
                         />
+                        {errors.description && (
+                            <p className="text-xs text-red-500 mt-1">
+                                {errors.description}
+                            </p>
+                        )}
                     </div>
 
                     <div className="w-44">

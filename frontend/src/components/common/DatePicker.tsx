@@ -30,6 +30,13 @@ const sameDay = (left: Date, right: Date) =>
     left.getMonth() === right.getMonth() &&
     left.getDate() === right.getDate();
 
+const isPastDate = (date: Date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const compareDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    return compareDate < today;
+};
+
 const DatePicker: React.FC<DatePickerProps> = ({
     label,
     value,
@@ -228,20 +235,22 @@ const DatePicker: React.FC<DatePickerProps> = ({
                                     ? sameDay(date, selectedDate)
                                     : false;
                                 const isToday = sameDay(date, today);
+                                const isPast = isPastDate(date);
 
                                 return (
                                     <button
                                         key={`${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`}
                                         type="button"
-                                        onClick={() => handlePickDate(date)}
+                                        onClick={() => !isPast && handlePickDate(date)}
+                                        disabled={isPast}
                                         className={[
                                             "h-10 rounded-lg text-sm font-medium transition-colors flex items-center justify-center",
                                             isCurrentMonth
-                                                ? "text-[var(--color-app-text)]"
+                                                ? (isPast ? "text-[var(--color-app-text-muted)] opacity-30 cursor-not-allowed" : "text-[var(--color-app-text)]")
                                                 : "text-[var(--color-app-text-muted)] opacity-60",
                                             isSelected
                                                 ? "bg-[var(--color-primary)] text-white shadow-sm"
-                                                : "hover:bg-[var(--color-app-surface-soft)]",
+                                                : (isPast ? "" : "hover:bg-[var(--color-app-surface-soft)]"),
                                             isToday && !isSelected
                                                 ? "ring-1 ring-[var(--color-primary-soft-strong)]"
                                                 : "",

@@ -22,6 +22,22 @@ const SignUpPage: React.FC = () => {
     const [error, setError] = useState("");
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
+    // ── Password strength ──
+    const getPasswordStrength = (pwd: string): { level: number; label: string; color: string } => {
+        if (!pwd) return { level: 0, label: "", color: "" };
+        let score = 0;
+        if (pwd.length >= 8) score++;
+        if (pwd.length >= 12) score++;
+        if (/[A-Z]/.test(pwd) && /[a-z]/.test(pwd)) score++;
+        if (/[0-9]/.test(pwd)) score++;
+        if (/[^A-Za-z0-9]/.test(pwd)) score++;
+        if (score <= 1) return { level: 1, label: "Weak", color: "#ef4444" };
+        if (score === 2) return { level: 2, label: "Fair", color: "#f97316" };
+        if (score === 3) return { level: 3, label: "Good", color: "#eab308" };
+        return { level: 4, label: "Strong", color: "#22c55e" };
+    };
+    const pwdStrength = getPasswordStrength(formData.password);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value, type, checked } = e.target;
         setFormData((prev) => ({
@@ -155,22 +171,51 @@ const SignUpPage: React.FC = () => {
 
                 <form onSubmit={handleSubmit} className="space-y-3">
                     {fields.map((field) => (
-                        <div key={field.name} className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                                {field.icon}
-                            </span>
-                            <input
-                                type={field.type}
-                                name={field.name}
-                                value={formData[field.name]}
-                                onChange={handleChange}
-                                placeholder={field.placeholder}
-                                className={`w-full pl-10 pr-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary-soft)] ${
-                                    fieldErrors[field.name]
-                                        ? "border-red-400"
-                                        : "border-gray-300"
-                                }`}
-                            />
+                        <div key={field.name}>
+                            <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                                    {field.icon}
+                                </span>
+                                <input
+                                    type={field.type}
+                                    name={field.name}
+                                    value={formData[field.name]}
+                                    onChange={handleChange}
+                                    placeholder={field.placeholder}
+                                    className={`w-full pl-10 pr-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary-soft)] ${
+                                        fieldErrors[field.name]
+                                            ? "border-red-400"
+                                            : "border-gray-300"
+                                    }`}
+                                />
+                            </div>
+
+                            {/* Password strength bar */}
+                            {field.name === "password" && formData.password && (
+                                <div className="mt-2 px-0.5">
+                                    <div className="flex gap-1 mb-1">
+                                        {[1, 2, 3, 4].map((seg) => (
+                                            <div
+                                                key={seg}
+                                                className="h-1.5 flex-1 rounded-full transition-all duration-300"
+                                                style={{
+                                                    backgroundColor:
+                                                        seg <= pwdStrength.level
+                                                            ? pwdStrength.color
+                                                            : "#e5e7eb",
+                                                }}
+                                            />
+                                        ))}
+                                    </div>
+                                    <p
+                                        className="text-xs font-medium transition-colors duration-200"
+                                        style={{ color: pwdStrength.color }}
+                                    >
+                                        {pwdStrength.label}
+                                    </p>
+                                </div>
+                            )}
+
                             {fieldErrors[field.name] && (
                                 <p className="text-xs text-red-500 mt-0.5">
                                     {fieldErrors[field.name]}

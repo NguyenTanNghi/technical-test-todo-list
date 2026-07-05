@@ -37,10 +37,15 @@ axiosInstance.interceptors.response.use(
         const status = error.response?.status;
 
         if (status === 401) {
-            // Token expired or invalid — clear storage and redirect
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.location.href = '/signin';
+            const token = localStorage.getItem('token');
+            const isAuthRoute = error.config?.url?.includes('/auth/');
+            // Only force-redirect if user was already logged in (token exists)
+            // and this is NOT a login/register request
+            if (token && !isAuthRoute) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = '/signin';
+            }
         }
 
         if (status === 403) {

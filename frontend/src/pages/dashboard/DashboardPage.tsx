@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Plus, Circle } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { todoApi } from "../../api/todo.api";
@@ -16,12 +16,15 @@ import TaskFormModal from "../../components/todo/TaskFormModal";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import ErrorState from "../../components/common/ErrorState";
 import EmptyState from "../../components/common/EmptyState";
-import { useDisclosure } from "../../hooks/useUtils";
-import { useNavigate } from "react-router-dom";
+import { useDisclosure, useDebounce } from "../../hooks/useUtils";
+import { useNavigate, useOutletContext } from "react-router-dom";
 
 const DashboardPage: React.FC = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
+    const { searchQuery } = useOutletContext<{ searchQuery: string }>();
+    const debouncedSearch = useDebounce(searchQuery, 400);
+
     const [tasks, setTasks] = useState<Task[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -43,11 +46,13 @@ const DashboardPage: React.FC = () => {
         }
     };
 
-    const fetchTasks = async () => {
+    const fetchTasks = useCallback(async () => {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await todoApi.getTasks();
+            const response = await todoApi.getTasks({
+                search: debouncedSearch || undefined,
+            });
             setTasks(response.tasks);
         } catch (err) {
             setError(
@@ -56,18 +61,25 @@ const DashboardPage: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [debouncedSearch]);
 
     useEffect(() => {
         fetchTasks();
+    }, [fetchTasks]);
+
+    useEffect(() => {
         fetchCategories();
     }, []);
 
     const stats = calculateTaskStats(tasks);
-    const todoTasks = tasks.filter((t) => t.status !== "Completed").slice(0, 3);
-    const completedTasks = tasks
-        .filter((t) => t.status === "Completed")
-        .slice(0, 2);
+    const [todoLimit, setTodoLimit] = useState(3);
+    const [completedLimit, setCompletedLimit] = useState(2);
+
+    const allTodoTasks = tasks.filter((t) => t.status !== "Completed");
+    const allCompletedTasks = tasks.filter((t) => t.status === "Completed");
+
+    const todoTasks = allTodoTasks.slice(0, todoLimit);
+    const completedTasks = allCompletedTasks.slice(0, completedLimit);
 
     const handleCreateTask = async (
         payload: Parameters<typeof todoApi.createTask>[0],
@@ -219,6 +231,14 @@ const DashboardPage: React.FC = () => {
                                     </div>
                                 ))
                             )}
+                            {allTodoTasks.length > todoLimit && (
+                                <button
+                                    onClick={() => setTodoLimit((prev) => prev + 3)}
+                                    className="w-full mt-3 py-2 text-xs font-semibold text-[var(--color-app-text-muted)] hover:text-[var(--color-primary)] bg-[var(--color-app-surface-soft)] hover:bg-[var(--color-app-border)] rounded-xl transition-all border border-[var(--color-app-border)] flex items-center justify-center gap-1 cursor-pointer"
+                                >
+                                    Load More
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -306,6 +326,14 @@ const DashboardPage: React.FC = () => {
                                             )}
                                         </div>
                                     ))
+                                )}
+                                {allCompletedTasks.length > completedLimit && (
+                                    <button
+                                        onClick={() => setCompletedLimit((prev) => prev + 2)}
+                                        className="w-full mt-3 py-2 text-xs font-semibold text-[var(--color-app-text-muted)] hover:text-[var(--color-primary)] bg-[var(--color-app-surface-soft)] hover:bg-[var(--color-app-border)] rounded-xl transition-all border border-[var(--color-app-border)] flex items-center justify-center gap-1 cursor-pointer"
+                                    >
+                                        Load More
+                                    </button>
                                 )}
                             </div>
                         </div>
