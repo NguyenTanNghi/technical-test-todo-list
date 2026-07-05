@@ -154,6 +154,11 @@ Tạo file `.env`
 PORT=5000
 MONGO_URI=mongodb://localhost:27017/todo-list-db
 JWT_SECRET=your_secret_key
+
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+
 ```
 
 Khởi động server
