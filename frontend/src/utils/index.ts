@@ -1,4 +1,4 @@
-import type { TaskPriority, TaskStatus, TaskStats } from '../types';
+import type { TaskStats } from '../types';
 
 /**
  * Format a date string to display format

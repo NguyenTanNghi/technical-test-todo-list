@@ -3,7 +3,7 @@ import { ImagePlus } from "lucide-react";
 import Modal from "../common/Modal";
 import Button from "../common/Button";
 import DatePicker from "../common/DatePicker";
-import type { CreateTaskPayload, TaskPriority, Task } from "../../types";
+import type { CreateTaskPayload, Task } from "../../types";
 
 interface TaskFormModalProps {
     isOpen: boolean;

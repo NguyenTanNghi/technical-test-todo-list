@@ -1,6 +1,5 @@
 import React from "react";
 import { Search, ChevronDown } from "lucide-react";
-import type { TaskPriority, TaskStatus } from "../../types";
 
 interface TaskFilterBarProps {
     search: string;
