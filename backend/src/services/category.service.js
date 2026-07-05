@@ -120,6 +120,7 @@ async function deleteCategory(userId, categoryId) {
 }
 
 module.exports = {
+    seedDefaultCategories,
     getCategories,
     createCategory,
     updateCategory,
