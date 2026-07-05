@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
+import { useOutletContext } from "react-router-dom";
 import { todoApi } from "../../api/todo.api";
 import { categoryApi } from "../../api/category.api";
 import type { Task, CreateTaskPayload, UpdateTaskPayload, PaginationMeta } from "../../types";
@@ -18,6 +19,7 @@ import TaskDetailPanel from "../../components/todo/TaskDetailPanel";
 const PAGE_LIMIT = 6;
 
 const MyTaskPage: React.FC = () => {
+    const { searchQuery } = useOutletContext<{ searchQuery: string }>();
     const [tasks, setTasks] = useState<Task[]>([]);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -34,6 +36,11 @@ const MyTaskPage: React.FC = () => {
     const [statusFilter, setStatusFilter] = useState("");
     const [priorityFilter, setPriorityFilter] = useState("");
     const debouncedSearch = useDebounce(search, 400);
+
+    // Sync searchQuery from global TopNav search bar
+    useEffect(() => {
+        setSearch(searchQuery || "");
+    }, [searchQuery]);
 
     // Pagination
     const [page, setPage] = useState(1);
