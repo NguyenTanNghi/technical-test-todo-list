@@ -25,24 +25,24 @@ export const todoApi = {
      * Get a single task by ID
      */
     getTaskById: async (id: string): Promise<Task> => {
-        const response = await axiosInstance.get<Task>(`/tasks/${id}`);
-        return response.data;
+        const response = await axiosInstance.get<{ data: Task }>(`/tasks/${id}`);
+        return response.data.data;
     },
 
     /**
      * Create a new task
      */
     createTask: async (payload: CreateTaskPayload): Promise<Task> => {
-        const response = await axiosInstance.post<Task>('/tasks', payload);
-        return response.data;
+        const response = await axiosInstance.post<{ data: Task }>('/tasks', payload);
+        return response.data.data;
     },
 
     /**
      * Update a task by ID
      */
     updateTask: async (id: string, payload: UpdateTaskPayload): Promise<Task> => {
-        const response = await axiosInstance.put<Task>(`/tasks/${id}`, payload);
-        return response.data;
+        const response = await axiosInstance.put<{ data: Task }>(`/tasks/${id}`, payload);
+        return response.data.data;
     },
 
     /**

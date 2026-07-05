@@ -12,14 +12,27 @@ interface TaskFormModalProps {
     initialData?: Task | null;
     title?: string;
     isLoading?: boolean;
+    statuses?: string[];
+    priorities?: string[];
 }
 
-const priorities: TaskPriority[] = ["Extreme", "Moderate", "Low"];
+const defaultStatuses = ["Not Started", "In Progress", "Completed"];
+const defaultPriorities = ["Extreme", "Moderate", "Low"];
 
-const priorityColors: Record<TaskPriority, string> = {
-    Extreme: "#ef4444",
-    Moderate: "#3b82f6",
-    Low: "#22c55e",
+const getPriorityColor = (name: string): string => {
+    const p = (name || '').toLowerCase();
+    if (p.includes('extreme') || p.includes('high') || p.includes('urgent') || p.includes('critical')) return '#ef4444';
+    if (p.includes('moderate') || p.includes('medium') || p.includes('normal')) return '#3b82f6';
+    if (p.includes('low') || p.includes('easy')) return '#22c55e';
+    return '#6b7280';
+};
+
+const getStatusColor = (name: string): string => {
+    const s = (name || '').toLowerCase();
+    if (s.includes('complete') || s.includes('done') || s.includes('finish') || s.includes('hoàn thành')) return '#22c55e';
+    if (s.includes('progress') || s.includes('active') || s.includes('doing') || s.includes('tiến hành')) return '#3b82f6';
+    if (s.includes('not') || s.includes('todo') || s.includes('start') || s.includes('pending') || s.includes('chưa')) return '#ef4444';
+    return '#6b7280';
 };
 
 const TaskFormModal: React.FC<TaskFormModalProps> = ({
@@ -29,6 +42,8 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({
     initialData,
     title,
     isLoading = false,
+    statuses = defaultStatuses,
+    priorities = defaultPriorities,
 }) => {
     const isEditing = !!initialData;
     const modalTitle = title || (isEditing ? "Edit Task" : "Add New Task");
@@ -36,12 +51,14 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({
     const [formData, setFormData] = useState<{
         title: string;
         date: string;
-        priority: TaskPriority;
+        priority: string;
+        status: string;
         description: string;
     }>({
         title: initialData?.title || "",
         date: initialData?.date ? initialData.date.slice(0, 10) : "",
-        priority: initialData?.priority || "Moderate",
+        priority: initialData?.priority || priorities[0] || "Moderate",
+        status: initialData?.status || statuses[0] || "Not Started",
         description: initialData?.description || "",
     });
 
@@ -79,7 +96,8 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({
         const payload: CreateTaskPayload = {
             title: formData.title.trim(),
             description: formData.description.trim() || undefined,
-            priority: formData.priority,
+            priority: formData.priority as any,
+            status: formData.status as any,
             date: formData.date || undefined,
             image: imagePreview || undefined,
         };
@@ -93,13 +111,14 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({
             setFormData({
                 title: initialData?.title || "",
                 date: initialData?.date ? initialData.date.slice(0, 10) : "",
-                priority: initialData?.priority || "Moderate",
+                priority: initialData?.priority || priorities[0] || "Moderate",
+                status: initialData?.status || statuses[0] || "Not Started",
                 description: initialData?.description || "",
             });
             setImagePreview(initialData?.image || "");
             setErrors({});
         }
-    }, [isOpen, initialData]);
+    }, [isOpen, initialData, priorities, statuses]);
 
     return (
         <Modal
@@ -173,7 +192,7 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({
                                 <div
                                     className="w-3 h-3 rounded-full"
                                     style={{
-                                        backgroundColor: priorityColors[p],
+                                        backgroundColor: getPriorityColor(p),
                                     }}
                                 />
                                 <span className="text-sm text-gray-700">
@@ -188,6 +207,44 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({
                                         setFormData((prev) => ({
                                             ...prev,
                                             priority: p,
+                                        }))
+                                    }
+                                    className="w-4 h-4 accent-[var(--color-primary)]"
+                                />
+                            </label>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Status */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Status
+                    </label>
+                    <div className="flex flex-wrap items-center gap-6">
+                        {statuses.map((s) => (
+                            <label
+                                key={s}
+                                className="flex items-center gap-2 cursor-pointer"
+                            >
+                                <div
+                                    className="w-3 h-3 rounded-full"
+                                    style={{
+                                        backgroundColor: getStatusColor(s),
+                                    }}
+                                />
+                                <span className="text-sm text-gray-700">
+                                    {s}
+                                </span>
+                                <input
+                                    type="radio"
+                                    name="status"
+                                    value={s}
+                                    checked={formData.status === s}
+                                    onChange={() =>
+                                        setFormData((prev) => ({
+                                            ...prev,
+                                            status: s,
                                         }))
                                     }
                                     className="w-4 h-4 accent-[var(--color-primary)]"

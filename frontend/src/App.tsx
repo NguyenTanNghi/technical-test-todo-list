@@ -18,6 +18,7 @@ const TaskCategoriesPage = lazy(
 );
 const SettingsPage = lazy(() => import("./pages/settings/SettingsPage"));
 const HelpPage = lazy(() => import("./pages/help/HelpPage"));
+const TaskDetailPage = lazy(() => import("./pages/tasks/TaskDetailPage"));
 
 function App() {
     return (
@@ -56,6 +57,10 @@ function App() {
                                         <Route
                                             path="/my-task"
                                             element={<MyTaskPage />}
+                                        />
+                                        <Route
+                                            path="/my-task/:id"
+                                            element={<TaskDetailPage />}
                                         />
                                         <Route
                                             path="/task-categories"

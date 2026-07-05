@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Plus, Circle } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { todoApi } from "../../api/todo.api";
+import { categoryApi } from "../../api/category.api";
 import type { Task } from "../../types";
 import {
     calculateTaskStats,
@@ -27,7 +28,20 @@ const DashboardPage: React.FC = () => {
     const [isCreating, setIsCreating] = useState(false);
     const addModal = useDisclosure();
 
+    const [statuses, setStatuses] = useState<string[]>([]);
+    const [priorities, setPriorities] = useState<string[]>([]);
+
     const displayName = user ? user.firstName : "User";
+
+    const fetchCategories = async () => {
+        try {
+            const res = await categoryApi.getCategories();
+            setStatuses(res.statuses.map((c) => c.name));
+            setPriorities(res.priorities.map((c) => c.name));
+        } catch (err) {
+            console.error("Failed to load categories", err);
+        }
+    };
 
     const fetchTasks = async () => {
         setIsLoading(true);
@@ -46,6 +60,7 @@ const DashboardPage: React.FC = () => {
 
     useEffect(() => {
         fetchTasks();
+        fetchCategories();
     }, []);
 
     const stats = calculateTaskStats(tasks);
@@ -308,6 +323,8 @@ const DashboardPage: React.FC = () => {
                     ) => Promise<void>
                 }
                 isLoading={isCreating}
+                statuses={statuses}
+                priorities={priorities}
             />
         </div>
     );

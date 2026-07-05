@@ -15,13 +15,11 @@ const taskSchema = new mongoose.Schema(
         },
         priority: {
             type: String,
-            enum: PRIORITIES,
             default: "Moderate",
             required: true,
         },
         status: {
             type: String,
-            enum: STATUSES,
             default: "Not Started",
             required: true,
         },

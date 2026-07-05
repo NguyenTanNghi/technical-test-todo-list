@@ -1,5 +1,6 @@
 import React from "react";
-import { Edit, Trash2, AlertTriangle, X, Circle } from "lucide-react";
+import { Edit, Trash2, Eye, X, Circle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import type { Task } from "../../types";
 import { formatDate, getPriorityClass, getStatusClass } from "../../utils";
 
@@ -16,6 +17,7 @@ const TaskDetailPanel: React.FC<TaskDetailPanelProps> = ({
     onDelete,
     onClose,
 }) => {
+    const navigate = useNavigate();
     return (
         <div className="bg-[var(--color-app-surface)] rounded-2xl border border-[var(--color-app-border)] shadow-sm overflow-hidden animate-slide-in">
             {/* Header image or icon */}
@@ -111,9 +113,10 @@ const TaskDetailPanel: React.FC<TaskDetailPanelProps> = ({
                     )}
                     <button
                         className="w-8 h-8 rounded-lg bg-[var(--color-primary)] text-white flex items-center justify-center hover:bg-[var(--color-primary-hover)] transition-colors"
-                        aria-label="Flag task"
+                        aria-label="View task detail"
+                        onClick={() => navigate(`/my-task/${task._id}`)}
                     >
-                        <AlertTriangle size={14} />
+                        <Eye size={14} />
                     </button>
                 </div>
             </div>

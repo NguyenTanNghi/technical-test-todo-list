@@ -232,12 +232,22 @@ async function deleteTask(userId, taskId) {
 }
 
 async function getTaskStats(userId) {
-    const [completed, inProgress, notStarted, total] = await Promise.all([
-        Task.countDocuments({ userId, status: "Completed" }),
-        Task.countDocuments({ userId, status: "In Progress" }),
-        Task.countDocuments({ userId, status: "Not Started" }),
-        Task.countDocuments({ userId }),
-    ]);
+    const tasks = await Task.find({ userId });
+    const total = tasks.length;
+    let completed = 0;
+    let inProgress = 0;
+    let notStarted = 0;
+
+    for (const t of tasks) {
+        const s = (t.status || "").toLowerCase();
+        if (s.includes("complete") || s.includes("done") || s.includes("finish") || s.includes("hoàn thành")) {
+            completed++;
+        } else if (s.includes("progress") || s.includes("active") || s.includes("doing") || s.includes("tiến hành")) {
+            inProgress++;
+        } else {
+            notStarted++;
+        }
+    }
 
     return {
         completed,

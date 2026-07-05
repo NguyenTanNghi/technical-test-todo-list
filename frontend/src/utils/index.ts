@@ -42,35 +42,39 @@ export const getTodayDisplay = (): { day: string; date: string } => {
 /**
  * Get CSS class for task priority
  */
-export const getPriorityClass = (priority: TaskPriority): string => {
-  const map: Record<TaskPriority, string> = {
-    Extreme: 'priority-extreme',
-    Moderate: 'priority-moderate',
-    Low: 'priority-low',
-  };
-  return map[priority] || '';
+export const getPriorityClass = (priority: string): string => {
+  const p = (priority || '').toLowerCase();
+  if (p.includes('extreme') || p.includes('high') || p.includes('urgent') || p.includes('critical')) return 'priority-extreme';
+  if (p.includes('moderate') || p.includes('medium') || p.includes('normal')) return 'priority-moderate';
+  if (p.includes('low') || p.includes('easy')) return 'priority-low';
+  return 'priority-moderate'; // fallback
 };
 
 /**
  * Get CSS class for task status
  */
-export const getStatusClass = (status: TaskStatus): string => {
-  const map: Record<TaskStatus, string> = {
-    Completed: 'status-completed',
-    'In Progress': 'status-in-progress',
-    'Not Started': 'status-not-started',
-  };
-  return map[status] || '';
+export const getStatusClass = (status: string): string => {
+  const s = (status || '').toLowerCase();
+  if (s.includes('complete') || s.includes('done') || s.includes('finish') || s.includes('hoàn thành')) return 'status-completed';
+  if (s.includes('progress') || s.includes('active') || s.includes('doing') || s.includes('tiến hành')) return 'status-in-progress';
+  if (s.includes('not') || s.includes('todo') || s.includes('start') || s.includes('pending') || s.includes('chưa')) return 'status-not-started';
+  return 'status-not-started'; // fallback
 };
 
 /**
  * Calculate task statistics from task array
  */
-export const calculateTaskStats = (tasks: { status: TaskStatus }[]): TaskStats => {
+export const calculateTaskStats = (tasks: { status: string }[]): TaskStats => {
   const total = tasks.length;
-  const completed = tasks.filter(t => t.status === 'Completed').length;
-  const inProgress = tasks.filter(t => t.status === 'In Progress').length;
-  const notStarted = tasks.filter(t => t.status === 'Not Started').length;
+  const completed = tasks.filter(t => {
+    const s = (t.status || '').toLowerCase();
+    return s.includes('complete') || s.includes('done') || s.includes('finish') || s.includes('hoàn thành');
+  }).length;
+  const inProgress = tasks.filter(t => {
+    const s = (t.status || '').toLowerCase();
+    return s.includes('progress') || s.includes('active') || s.includes('doing') || s.includes('tiến hành');
+  }).length;
+  const notStarted = total - completed - inProgress;
 
   return {
     total,

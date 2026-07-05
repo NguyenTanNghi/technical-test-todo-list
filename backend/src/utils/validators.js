@@ -109,16 +109,15 @@ function validateTaskBody(body, { partial = false } = {}) {
 
     if (!partial || typeof body.priority !== "undefined") {
         if (!priority) errors.push("Priority is required.");
-        else if (!isValidPriority(priority))
-            errors.push("Priority is invalid.");
     }
 
     if (
         typeof body.status !== "undefined" &&
-        status &&
-        !isValidStatus(status)
+        body.status !== null &&
+        typeof body.status === "string" &&
+        !body.status.trim()
     ) {
-        errors.push("Status is invalid.");
+        errors.push("Status cannot be empty.");
     }
 
     if (
@@ -165,22 +164,6 @@ function validateTaskQuery(query) {
         if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
             errors.push("Limit must be between 1 and 100.");
         }
-    }
-
-    if (
-        typeof query.status !== "undefined" &&
-        query.status &&
-        !isValidStatus(trimValue(query.status))
-    ) {
-        errors.push("Status is invalid.");
-    }
-
-    if (
-        typeof query.priority !== "undefined" &&
-        query.priority &&
-        !isValidPriority(trimValue(query.priority))
-    ) {
-        errors.push("Priority is invalid.");
     }
 
     return errors;

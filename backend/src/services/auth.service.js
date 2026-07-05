@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { AppError } = require("../utils/errors");
 const { trimValue } = require("../utils/validators");
+const { seedDefaultCategories } = require("./category.service");
 
 function createToken(user) {
     return jwt.sign(
@@ -42,6 +43,9 @@ async function registerUser(payload) {
         email,
         passwordHash,
     });
+
+    // Seed 6 default categories for this user
+    await seedDefaultCategories(user._id);
 
     return buildAuthResponse(user);
 }

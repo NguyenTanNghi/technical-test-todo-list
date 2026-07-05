@@ -9,10 +9,12 @@ interface TaskFilterBarProps {
     onStatusChange: (value: string) => void;
     priorityFilter: string;
     onPriorityChange: (value: string) => void;
+    statuses?: string[];
+    priorities?: string[];
 }
 
-const statuses: TaskStatus[] = ["Not Started", "In Progress", "Completed"];
-const priorities: TaskPriority[] = ["Extreme", "Moderate", "Low"];
+const defaultStatuses = ["Not Started", "In Progress", "Completed"];
+const defaultPriorities = ["Extreme", "Moderate", "Low"];
 
 const TaskFilterBar: React.FC<TaskFilterBarProps> = ({
     search,
@@ -21,6 +23,8 @@ const TaskFilterBar: React.FC<TaskFilterBarProps> = ({
     onStatusChange,
     priorityFilter,
     onPriorityChange,
+    statuses = defaultStatuses,
+    priorities = defaultPriorities,
 }) => {
     return (
         <div className="flex flex-wrap items-center gap-3 mb-4">

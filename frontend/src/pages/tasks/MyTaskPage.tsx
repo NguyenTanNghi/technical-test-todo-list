@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { todoApi } from "../../api/todo.api";
+import { categoryApi } from "../../api/category.api";
 import type { Task, CreateTaskPayload, UpdateTaskPayload } from "../../types";
 import TaskCard from "../../components/todo/TaskCard";
 import TaskFilterBar from "../../components/todo/TaskFilterBar";
@@ -24,6 +25,9 @@ const MyTaskPage: React.FC = () => {
     const [isDeleting, setIsDeleting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const [statuses, setStatuses] = useState<string[]>([]);
+    const [priorities, setPriorities] = useState<string[]>([]);
+
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("");
     const [priorityFilter, setPriorityFilter] = useState("");
@@ -32,6 +36,16 @@ const MyTaskPage: React.FC = () => {
     const addModal = useDisclosure();
     const editModal = useDisclosure();
     const deleteDialog = useDisclosure();
+
+    const fetchCategories = useCallback(async () => {
+        try {
+            const res = await categoryApi.getCategories();
+            setStatuses(res.statuses.map((c) => c.name));
+            setPriorities(res.priorities.map((c) => c.name));
+        } catch (err) {
+            console.error("Failed to load categories", err);
+        }
+    }, []);
 
     const fetchTasks = useCallback(async () => {
         setIsLoading(true);
@@ -43,13 +57,11 @@ const MyTaskPage: React.FC = () => {
                 priority: priorityFilter || undefined,
             });
             setTasks(res.tasks);
-            // Update selected task if it's in the new list
-            if (selectedTask) {
-                const updated = res.tasks.find(
-                    (t) => t._id === selectedTask._id,
-                );
-                setSelectedTask(updated || null);
-            }
+            // Update selected task if it's in the new list (use functional update to avoid dependency)
+            setSelectedTask((prev) => {
+                if (!prev) return prev;
+                return res.tasks.find((t) => t._id === prev._id) || null;
+            });
         } catch (err) {
             setError(
                 err instanceof Error ? err.message : "Failed to load tasks",
@@ -61,7 +73,8 @@ const MyTaskPage: React.FC = () => {
 
     useEffect(() => {
         fetchTasks();
-    }, [fetchTasks]);
+        fetchCategories();
+    }, [fetchTasks, fetchCategories]);
 
     const handleCreateTask = async (payload: CreateTaskPayload) => {
         setIsSaving(true);
@@ -131,6 +144,8 @@ const MyTaskPage: React.FC = () => {
                 onStatusChange={setStatusFilter}
                 priorityFilter={priorityFilter}
                 onPriorityChange={setPriorityFilter}
+                statuses={statuses}
+                priorities={priorities}
             />
 
             <div className="flex gap-5">
@@ -217,6 +232,8 @@ const MyTaskPage: React.FC = () => {
                     ) => Promise<void>
                 }
                 isLoading={isSaving}
+                statuses={statuses}
+                priorities={priorities}
             />
 
             {/* Edit Task Modal */}
@@ -229,6 +246,8 @@ const MyTaskPage: React.FC = () => {
                 onSubmit={handleUpdateTask}
                 initialData={editingTask}
                 isLoading={isSaving}
+                statuses={statuses}
+                priorities={priorities}
             />
 
             {/* Delete Confirm */}
