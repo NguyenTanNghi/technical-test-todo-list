@@ -1,0 +1,253 @@
+import React, { useEffect, useState, useCallback } from "react";
+import { todoApi } from "../../api/todo.api";
+import type { Task, CreateTaskPayload, UpdateTaskPayload } from "../../types";
+import TaskCard from "../../components/todo/TaskCard";
+import TaskFilterBar from "../../components/todo/TaskFilterBar";
+import TaskFormModal from "../../components/todo/TaskFormModal";
+import ConfirmDialog from "../../components/common/ConfirmDialog";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
+import ErrorState from "../../components/common/ErrorState";
+import EmptyState from "../../components/common/EmptyState";
+import Button from "../../components/common/Button";
+import { useDisclosure } from "../../hooks/useUtils";
+import { useDebounce } from "../../hooks/useUtils";
+import { Plus } from "lucide-react";
+import TaskDetailPanel from "../../components/todo/TaskDetailPanel";
+
+const MyTaskPage: React.FC = () => {
+    const [tasks, setTasks] = useState<Task[]>([]);
+    const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+    const [editingTask, setEditingTask] = useState<Task | null>(null);
+    const [deletingTask, setDeletingTask] = useState<Task | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const [search, setSearch] = useState("");
+    const [statusFilter, setStatusFilter] = useState("");
+    const [priorityFilter, setPriorityFilter] = useState("");
+    const debouncedSearch = useDebounce(search, 400);
+
+    const addModal = useDisclosure();
+    const editModal = useDisclosure();
+    const deleteDialog = useDisclosure();
+
+    const fetchTasks = useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const res = await todoApi.getTasks({
+                search: debouncedSearch || undefined,
+                status: statusFilter || undefined,
+                priority: priorityFilter || undefined,
+            });
+            setTasks(res.tasks);
+            // Update selected task if it's in the new list
+            if (selectedTask) {
+                const updated = res.tasks.find(
+                    (t) => t._id === selectedTask._id,
+                );
+                setSelectedTask(updated || null);
+            }
+        } catch (err) {
+            setError(
+                err instanceof Error ? err.message : "Failed to load tasks",
+            );
+        } finally {
+            setIsLoading(false);
+        }
+    }, [debouncedSearch, statusFilter, priorityFilter]);
+
+    useEffect(() => {
+        fetchTasks();
+    }, [fetchTasks]);
+
+    const handleCreateTask = async (payload: CreateTaskPayload) => {
+        setIsSaving(true);
+        try {
+            const newTask = await todoApi.createTask(payload);
+            setTasks((prev) => [newTask, ...prev]);
+            setSelectedTask(newTask);
+            addModal.close();
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleUpdateTask = async (payload: UpdateTaskPayload) => {
+        if (!editingTask) return;
+        setIsSaving(true);
+        try {
+            const updated = await todoApi.updateTask(editingTask._id, payload);
+            setTasks((prev) =>
+                prev.map((t) => (t._id === updated._id ? updated : t)),
+            );
+            if (selectedTask?._id === updated._id) setSelectedTask(updated);
+            editModal.close();
+            setEditingTask(null);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleDeleteTask = async () => {
+        if (!deletingTask) return;
+        setIsDeleting(true);
+        try {
+            await todoApi.deleteTask(deletingTask._id);
+            setTasks((prev) => prev.filter((t) => t._id !== deletingTask._id));
+            if (selectedTask?._id === deletingTask._id) setSelectedTask(null);
+            deleteDialog.close();
+            setDeletingTask(null);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    return (
+        <div className="animate-fade-in">
+            <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-gray-800">My Tasks</h2>
+                <Button
+                    size="sm"
+                    leftIcon={<Plus size={14} />}
+                    onClick={addModal.open}
+                >
+                    Add Task
+                </Button>
+            </div>
+
+            <TaskFilterBar
+                search={search}
+                onSearchChange={setSearch}
+                statusFilter={statusFilter}
+                onStatusChange={setStatusFilter}
+                priorityFilter={priorityFilter}
+                onPriorityChange={setPriorityFilter}
+            />
+
+            <div className="flex gap-5">
+                {/* Task list */}
+                <div className="flex-1 min-w-0">
+                    {isLoading ? (
+                        <LoadingSpinner
+                            className="py-16"
+                            text="Loading tasks..."
+                        />
+                    ) : error ? (
+                        <ErrorState message={error} onRetry={fetchTasks} />
+                    ) : tasks.length === 0 ? (
+                        <EmptyState
+                            title={
+                                search || statusFilter || priorityFilter
+                                    ? "No matching tasks"
+                                    : "No tasks yet"
+                            }
+                            description={
+                                search || statusFilter || priorityFilter
+                                    ? "Try adjusting your filters."
+                                    : "Add your first task to get started."
+                            }
+                            actionLabel={
+                                !search && !statusFilter && !priorityFilter
+                                    ? "Add Task"
+                                    : undefined
+                            }
+                            onAction={addModal.open}
+                        />
+                    ) : (
+                        <div className="space-y-3">
+                            {tasks.map((task) => (
+                                <TaskCard
+                                    key={task._id}
+                                    task={task}
+                                    onClick={() => setSelectedTask(task)}
+                                    onEdit={() => {
+                                        setEditingTask(task);
+                                        editModal.open();
+                                    }}
+                                    onDelete={() => {
+                                        setDeletingTask(task);
+                                        deleteDialog.open();
+                                    }}
+                                    className={
+                                        selectedTask?._id === task._id
+                                            ? "ring-2 ring-[var(--color-primary)]"
+                                            : ""
+                                    }
+                                />
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* Task detail panel */}
+                {selectedTask && (
+                    <div className="w-96 flex-shrink-0">
+                        <TaskDetailPanel
+                            task={selectedTask}
+                            onEdit={() => {
+                                setEditingTask(selectedTask);
+                                editModal.open();
+                            }}
+                            onDelete={() => {
+                                setDeletingTask(selectedTask);
+                                deleteDialog.open();
+                            }}
+                            onClose={() => setSelectedTask(null)}
+                        />
+                    </div>
+                )}
+            </div>
+
+            {/* Add Task Modal */}
+            <TaskFormModal
+                isOpen={addModal.isOpen}
+                onClose={addModal.close}
+                onSubmit={
+                    handleCreateTask as (
+                        payload: import("../../types").CreateTaskPayload,
+                    ) => Promise<void>
+                }
+                isLoading={isSaving}
+            />
+
+            {/* Edit Task Modal */}
+            <TaskFormModal
+                isOpen={editModal.isOpen}
+                onClose={() => {
+                    editModal.close();
+                    setEditingTask(null);
+                }}
+                onSubmit={handleUpdateTask}
+                initialData={editingTask}
+                isLoading={isSaving}
+            />
+
+            {/* Delete Confirm */}
+            <ConfirmDialog
+                isOpen={deleteDialog.isOpen}
+                onClose={() => {
+                    deleteDialog.close();
+                    setDeletingTask(null);
+                }}
+                onConfirm={handleDeleteTask}
+                title="Delete Task"
+                message={`Are you sure you want to delete "${deletingTask?.title}"? This action cannot be undone.`}
+                confirmLabel="Delete"
+                cancelLabel="Cancel"
+                isLoading={isDeleting}
+                variant="danger"
+            />
+        </div>
+    );
+};
+
+export default MyTaskPage;
